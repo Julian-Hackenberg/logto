@@ -50,6 +50,16 @@ const getJwtTokenKeyAndBody = (tokenPath: LogtoJwtTokenPath, body: unknown) => {
   };
 };
 
+const guardRequestBodyByTokenType = (tokenType: LogtoJwtTokenKeyType, body: unknown) => {
+  // Manually implement the request body type check, the flow aligns with the actual `koaGuard()`.
+  // Use ternary operator to get the specific guard brings difficulties to type inference.
+  if (tokenType === LogtoJwtTokenKeyType.AccessToken) {
+    tryParse('body', jwtCustomizerAccessTokenGuard, body);
+  } else {
+    tryParse('body', jwtCustomizerClientCredentialsGuard, body);
+  }
+};
+
 /**
  * Remove actual values of the private keys from response.
  * @param type Logto config key DB column name. Values are either `oidc.privateKeys` or `oidc.cookieKeys`.
@@ -288,6 +298,45 @@ export default function logtoConfigRoutes<T extends AuthedRouter>(
           : LogtoJwtTokenKey.ClientCredentials
       );
       ctx.status = 204;
+      return next();
+    }
+  );
+
+  router.patch(
+    '/configs/jwt-customizer/:tokenType',
+    koaGuard({
+      params: z.object({
+        tokenType: z.nativeEnum(LogtoJwtTokenKeyType),
+      }),
+      /**
+       * Use `z.unknown()` to guard the request body as a JSON object, since the actual guard depends
+       * on the `tokenType` and we can not get the value of `tokenType` before parsing the request body,
+       * we will do more specific guard as long as we can get the value of `tokenType`.
+       */
+      body: z.unknown(),
+      response: jwtCustomizerAccessTokenGuard.or(jwtCustomizerClientCredentialsGuard),
+      status: [200, 400, 404],
+    }),
+    async (ctx, next) => {
+      const {
+        params: { tokenType },
+        body,
+      } = ctx.guard;
+
+      guardRequestBodyByTokenType(tokenType, body);
+
+      // Check if the jwt customizer exists, if not, throw a 404 error.
+      await getJwtCustomizer(getLogtoJwtTokenKey(tokenType));
+
+      const updatedJwtCustomizer = await updateJwtCustomizer(
+        getLogtoJwtTokenKey(tokenType),
+        // Since we applied the detailed guard manually, we can safely cast the `body` to the specific type.
+        // eslint-disable-next-line no-restricted-syntax
+        body as Parameters<typeof insertJwtCustomizer>[1]
+      );
+
+      ctx.body = updatedJwtCustomizer.value;
+
       return next();
     }
   );

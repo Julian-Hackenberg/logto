@@ -10,7 +10,12 @@ import {
   getOidcKeys,
   rotateOidcKeys,
   updateAdminConsoleConfig,
+<<<<<<< HEAD
   upsertJwtCustomizer,
+=======
+  insertJwtCustomizer,
+  updateJwtCustomizer,
+>>>>>>> 68be626c8 (feat(core): add PATCH /configs/jwt-customizer API)
   getJwtCustomizer,
   deleteJwtCustomizer,
 } from '#src/api/index.js';
@@ -127,7 +132,7 @@ describe('admin console sign-in experience', () => {
     expect(privateKeys2[1]?.id).toBe(privateKeys[0]?.id);
   });
 
-  it('should successfully PUT/GET/DELETE a JWT customizer (access token)', async () => {
+  it('should successfully PUT/PATCH/GET/DELETE a JWT customizer (access token)', async () => {
     const accessTokenJwtCustomizerPayload = {
       script: '',
       envVars: {},
@@ -168,7 +173,7 @@ describe('admin console sign-in experience', () => {
     });
   });
 
-  it('should successfully PUT/GET/DELETE a JWT customizer (client credentials)', async () => {
+  it('should successfully PUT/PATCH/GET/DELETE a JWT customizer (client credentials)', async () => {
     const clientCredentialsJwtCustomizerPayload = {
       script: '',
       envVars: {},

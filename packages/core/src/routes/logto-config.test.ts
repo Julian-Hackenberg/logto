@@ -268,6 +268,21 @@ describe('configs routes', () => {
     expect(response.body).toEqual(mockJwtCustomizerConfigForAccessToken.value);
   });
 
+  it('PATCH /configs/jwt-customizer/:tokenType should update a record successfully', async () => {
+    logtoConfigLibraries.getJwtCustomizer.mockResolvedValueOnce(
+      mockJwtCustomizerConfigForAccessToken
+    );
+    const response = await routeRequester
+      .patch('/configs/jwt-customizer/access-token')
+      .send(mockJwtCustomizerConfigForAccessToken.value);
+    expect(logtoConfigQueries.updateJwtCustomizer).toHaveBeenCalledWith(
+      LogtoJwtTokenKey.AccessToken,
+      mockJwtCustomizerConfigForAccessToken.value
+    );
+    expect(response.status).toEqual(200);
+    expect(response.body).toEqual(mockJwtCustomizerConfigForAccessToken.value);
+  });
+
   it('GET /configs/jwt-customizer/:tokenType should return the record', async () => {
     logtoConfigLibraries.getJwtCustomizer.mockResolvedValueOnce(
       mockJwtCustomizerConfigForAccessToken
