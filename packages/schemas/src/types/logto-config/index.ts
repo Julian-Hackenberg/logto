@@ -56,25 +56,29 @@ export enum LogtoJwtTokenKey {
   ClientCredentials = 'jwt.clientCredentials',
 }
 
-const jwtCustomizerGuard = z
+const jwtCustomizerGuardObject = {
+  script: z.string(),
+  envVars: z.record(z.string()),
+  contextSample: jsonObjectGuard,
+};
+
+export const jwtCustomizerAccessTokenGuard = z
   .object({
-    script: z.string(),
-    envVars: z.record(z.string()),
-    contextSample: jsonObjectGuard,
+    ...jwtCustomizerGuardObject,
+    // Use partial token guard since users customization may not rely on all fields.
+    tokenSample: accessTokenPayloadGuard.partial().optional(),
   })
   .partial();
 
-export const jwtCustomizerAccessTokenGuard = jwtCustomizerGuard.extend({
-  // Use partial token guard since users customization may not rely on all fields.
-  tokenSample: accessTokenPayloadGuard.partial().optional(),
-});
-
 export type JwtCustomizerAccessToken = z.infer<typeof jwtCustomizerAccessTokenGuard>;
 
-export const jwtCustomizerClientCredentialsGuard = jwtCustomizerGuard.extend({
-  // Use partial token guard since users customization may not rely on all fields.
-  tokenSample: clientCredentialsPayloadGuard.partial().optional(),
-});
+export const jwtCustomizerClientCredentialsGuard = z
+  .object({
+    ...jwtCustomizerGuardObject,
+    // Use partial token guard since users customization may not rely on all fields.
+    tokenSample: clientCredentialsPayloadGuard.partial().optional(),
+  })
+  .partial();
 
 export type JwtCustomizerClientCredentials = z.infer<typeof jwtCustomizerClientCredentialsGuard>;
 

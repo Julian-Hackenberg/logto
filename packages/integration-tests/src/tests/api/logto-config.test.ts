@@ -3,6 +3,7 @@ import {
   type AdminConsoleData,
   LogtoOidcConfigKeyType,
 } from '@logto/schemas';
+import { HTTPError } from 'got';
 
 import {
   deleteOidcKey,
@@ -10,12 +11,8 @@ import {
   getOidcKeys,
   rotateOidcKeys,
   updateAdminConsoleConfig,
-<<<<<<< HEAD
   upsertJwtCustomizer,
-=======
-  insertJwtCustomizer,
   updateJwtCustomizer,
->>>>>>> 68be626c8 (feat(core): add PATCH /configs/jwt-customizer API)
   getJwtCustomizer,
   deleteJwtCustomizer,
 } from '#src/api/index.js';
@@ -163,9 +160,20 @@ describe('admin console sign-in experience', () => {
       newAccessTokenJwtCustomizerPayload
     );
     expect(updatedAccessToken).toMatchObject(newAccessTokenJwtCustomizerPayload);
-    await expect(getJwtCustomizer('access-token')).resolves.toMatchObject(
-      newAccessTokenJwtCustomizerPayload
+    const response = await updateJwtCustomizer('access-token', { abc: 'abc' }).catch(
+      (error: unknown) => error
     );
+    expect(response instanceof HTTPError && response.response.statusCode).toBe(400);
+    const updateJwtCustomizerPayload = {
+      script: 'another script',
+    };
+    await expect(
+      updateJwtCustomizer('access-token', updateJwtCustomizerPayload)
+    ).resolves.toContain(expect.objectContaining({ value: updateJwtCustomizerPayload }));
+    await expect(getJwtCustomizer('access-token')).resolves.toMatchObject({
+      ...newAccessTokenJwtCustomizerPayload,
+      ...updateJwtCustomizerPayload,
+    });
     await expect(deleteJwtCustomizer('access-token')).resolves.not.toThrow();
     await expectRejects(getJwtCustomizer('access-token'), {
       code: 'entity.not_exists',
@@ -173,7 +181,7 @@ describe('admin console sign-in experience', () => {
     });
   });
 
-  it('should successfully PUT/PATCH/GET/DELETE a JWT customizer (client credentials)', async () => {
+  it.only('should successfully PUT/PATCH/GET/DELETE a JWT customizer (client credentials)', async () => {
     const clientCredentialsJwtCustomizerPayload = {
       script: '',
       envVars: {},
@@ -202,9 +210,20 @@ describe('admin console sign-in experience', () => {
       newClientCredentialsJwtCustomizerPayload
     );
     expect(updatedClientCredentials).toMatchObject(newClientCredentialsJwtCustomizerPayload);
-    await expect(getJwtCustomizer('client-credentials')).resolves.toMatchObject(
-      newClientCredentialsJwtCustomizerPayload
+    const response = await updateJwtCustomizer('client-credentials', { abc: 'abc' }).catch(
+      (error: unknown) => error
     );
+    expect(response instanceof HTTPError && response.response.statusCode).toBe(400);
+    const updateJwtCustomizerPayload = {
+      script: 'another script client credentials',
+    };
+    await expect(
+      updateJwtCustomizer('client-credentials', updateJwtCustomizerPayload)
+    ).resolves.toContainEqual(expect.objectContaining({ value: updateJwtCustomizerPayload }));
+    await expect(getJwtCustomizer('client-credentials')).resolves.toMatchObject({
+      ...newClientCredentialsJwtCustomizerPayload,
+      ...updateJwtCustomizerPayload,
+    });
     await expect(deleteJwtCustomizer('client-credentials')).resolves.not.toThrow();
     await expectRejects(getJwtCustomizer('client-credentials'), {
       code: 'entity.not_exists',

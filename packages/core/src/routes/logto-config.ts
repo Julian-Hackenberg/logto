@@ -37,27 +37,30 @@ const getOidcConfigKeyDatabaseColumnName = (key: LogtoOidcConfigKeyType): LogtoO
     ? LogtoOidcConfigKey.PrivateKeys
     : LogtoOidcConfigKey.CookieKeys;
 
-const getJwtTokenKeyAndBody = (tokenPath: LogtoJwtTokenPath, body: unknown) => {
+const getJwtTokenKeyAndBody = (
+  tokenPath: LogtoJwtTokenPath,
+  body: unknown,
+  partiallyGuard = false
+) => {
+  /**
+   * Can not use
+   * `parse('body', partiallyGuard ? jwtCustomizerAccessTokenGuard.partial() : jwtCustomizerAccessTokenGuard, body)`
+   * since it can not properly narrow down the type of `body` if we use `jwtCustomizerAccessTokenGuard.partial()`.
+   */
   if (tokenPath === LogtoJwtTokenPath.AccessToken) {
     return {
       key: LogtoJwtTokenKey.AccessToken,
-      body: parse('body', jwtCustomizerAccessTokenGuard, body),
+      body: partiallyGuard
+        ? parse('body', jwtCustomizerAccessTokenGuard.partial(), body)
+        : parse('body', jwtCustomizerAccessTokenGuard, body),
     };
   }
   return {
     key: LogtoJwtTokenKey.ClientCredentials,
-    body: parse('body', jwtCustomizerClientCredentialsGuard, body),
+    body: partiallyGuard
+      ? parse('body', jwtCustomizerClientCredentialsGuard.partial(), body)
+      : parse('body', jwtCustomizerClientCredentialsGuard, body),
   };
-};
-
-const guardRequestBodyByTokenType = (tokenType: LogtoJwtTokenKeyType, body: unknown) => {
-  // Manually implement the request body type check, the flow aligns with the actual `koaGuard()`.
-  // Use ternary operator to get the specific guard brings difficulties to type inference.
-  if (tokenType === LogtoJwtTokenKeyType.AccessToken) {
-    tryParse('body', jwtCustomizerAccessTokenGuard, body);
-  } else {
-    tryParse('body', jwtCustomizerClientCredentialsGuard, body);
-  }
 };
 
 /**
@@ -98,7 +101,8 @@ export default function logtoConfigRoutes<T extends AuthedRouter>(
     updateOidcConfigsByKey,
     deleteJwtCustomizer,
   } = queries.logtoConfigs;
-  const { getOidcConfigs, upsertJwtCustomizer, getJwtCustomizer } = logtoConfigs;
+  const { getOidcConfigs, upsertJwtCustomizer, getJwtCustomizer, updateJwtCustomizer } =
+    logtoConfigs;
 
   router.get(
     '/configs/admin-console',
@@ -256,6 +260,31 @@ export default function logtoConfigRoutes<T extends AuthedRouter>(
     }
   );
 
+  router.patch(
+    '/configs/jwt-customizer/:tokenTypePath',
+    // See comments in the `PUT /configs/jwt-customizer/:tokenTypePath` route, handle the request body manually.
+    koaGuard({
+      params: z.object({
+        tokenTypePath: z.nativeEnum(LogtoJwtTokenPath),
+      }),
+      body: z.unknown(),
+      response: jwtCustomizerAccessTokenGuard.or(jwtCustomizerClientCredentialsGuard),
+      status: [200, 400, 404],
+    }),
+    async (ctx, next) => {
+      const {
+        params: { tokenTypePath },
+        body: rawBody,
+      } = ctx.guard;
+      const { key, body } = getJwtTokenKeyAndBody(tokenTypePath, rawBody, true);
+      const updatedJwtCustomizer = await updateJwtCustomizer(key, body);
+
+      ctx.body = updatedJwtCustomizer.value;
+
+      return next();
+    }
+  );
+
   router.get(
     '/configs/jwt-customizer/:tokenTypePath',
     koaGuard({
@@ -298,45 +327,6 @@ export default function logtoConfigRoutes<T extends AuthedRouter>(
           : LogtoJwtTokenKey.ClientCredentials
       );
       ctx.status = 204;
-      return next();
-    }
-  );
-
-  router.patch(
-    '/configs/jwt-customizer/:tokenType',
-    koaGuard({
-      params: z.object({
-        tokenType: z.nativeEnum(LogtoJwtTokenKeyType),
-      }),
-      /**
-       * Use `z.unknown()` to guard the request body as a JSON object, since the actual guard depends
-       * on the `tokenType` and we can not get the value of `tokenType` before parsing the request body,
-       * we will do more specific guard as long as we can get the value of `tokenType`.
-       */
-      body: z.unknown(),
-      response: jwtCustomizerAccessTokenGuard.or(jwtCustomizerClientCredentialsGuard),
-      status: [200, 400, 404],
-    }),
-    async (ctx, next) => {
-      const {
-        params: { tokenType },
-        body,
-      } = ctx.guard;
-
-      guardRequestBodyByTokenType(tokenType, body);
-
-      // Check if the jwt customizer exists, if not, throw a 404 error.
-      await getJwtCustomizer(getLogtoJwtTokenKey(tokenType));
-
-      const updatedJwtCustomizer = await updateJwtCustomizer(
-        getLogtoJwtTokenKey(tokenType),
-        // Since we applied the detailed guard manually, we can safely cast the `body` to the specific type.
-        // eslint-disable-next-line no-restricted-syntax
-        body as Parameters<typeof insertJwtCustomizer>[1]
-      );
-
-      ctx.body = updatedJwtCustomizer.value;
-
       return next();
     }
   );
