@@ -68,7 +68,8 @@ export const jwtCustomizerAccessTokenGuard = z
     // Use partial token guard since users customization may not rely on all fields.
     tokenSample: accessTokenPayloadGuard.partial().optional(),
   })
-  .partial();
+  .partial()
+  .strict();
 
 export type JwtCustomizerAccessToken = z.infer<typeof jwtCustomizerAccessTokenGuard>;
 
@@ -78,7 +79,8 @@ export const jwtCustomizerClientCredentialsGuard = z
     // Use partial token guard since users customization may not rely on all fields.
     tokenSample: clientCredentialsPayloadGuard.partial().optional(),
   })
-  .partial();
+  .partial()
+  .strict();
 
 export type JwtCustomizerClientCredentials = z.infer<typeof jwtCustomizerClientCredentialsGuard>;
 
