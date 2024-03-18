@@ -1,6 +1,6 @@
 import { emailRegEx, phoneRegEx, usernameRegEx } from '@logto/core-kit';
 import {
-  UsersPasswordEncryptionMethod,
+  UsersPasswordAlgorithm,
   jsonObjectGuard,
   userInfoSelectFields,
   userProfileResponseGuard,
@@ -117,7 +117,7 @@ export default function adminUserBasicsRoutes<T extends AuthedRouter>(...args: R
         username: string().regex(usernameRegEx),
         password: string().min(1),
         passwordDigest: string(),
-        passwordAlgorithm: nativeEnum(UsersPasswordEncryptionMethod),
+        passwordAlgorithm: nativeEnum(UsersPasswordAlgorithm),
         name: string(),
         avatar: string().url().or(literal('')).nullable(),
         customData: jsonObjectGuard,
@@ -174,8 +174,8 @@ export default function adminUserBasicsRoutes<T extends AuthedRouter>(...args: R
           ...conditional(password && (await encryptUserPassword(password))),
           ...conditional(
             passwordDigest && {
-              passwordEncrypted: passwordDigest,
-              passwordEncryptionMethod: passwordAlgorithm,
+              passwordDigest,
+              passwordAlgorithm,
             }
           ),
         },
@@ -235,11 +235,11 @@ export default function adminUserBasicsRoutes<T extends AuthedRouter>(...args: R
 
       await findUserById(userId);
 
-      const { passwordEncrypted, passwordEncryptionMethod } = await encryptUserPassword(password);
+      const { passwordDigest, passwordAlgorithm } = await encryptUserPassword(password);
 
       const user = await updateUserById(userId, {
-        passwordEncrypted,
-        passwordEncryptionMethod,
+        passwordDigest,
+        passwordAlgorithm,
       });
 
       ctx.body = pick(user, ...userInfoSelectFields);
@@ -282,7 +282,7 @@ export default function adminUserBasicsRoutes<T extends AuthedRouter>(...args: R
       const user = await findUserById(userId);
 
       ctx.body = {
-        hasPassword: Boolean(user.passwordEncrypted),
+        hasPassword: Boolean(user.passwordDigest),
       };
 
       return next();
