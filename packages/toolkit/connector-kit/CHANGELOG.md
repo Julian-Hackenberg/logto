@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.1.1
+
+### Patch Changes
+
+- 2c10c2423: allow unknown properties in send message payload
+
 ## 2.1.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.6.0
+
+### Minor Changes
+
+- cc01acbd0: Create a new user through API with password digest and corresponding algorithm
+
 ## 1.5.0
 
 ### Minor Changes

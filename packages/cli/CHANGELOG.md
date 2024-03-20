@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.15.0
+
+### Patch Changes
+
+- Updated dependencies [cc01acbd0]
+- Updated dependencies [951865859]
+- Updated dependencies [2c10c2423]
+  - @logto/phrases@1.10.0
+  - @logto/schemas@1.15.0
+  - @logto/connector-kit@2.1.1
+
 ## 1.14.0
 
 ### Patch Changes
