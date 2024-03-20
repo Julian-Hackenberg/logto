@@ -1,4 +1,4 @@
-import { type User } from '@logto/schemas';
+import { type UserInfo } from '@logto/schemas';
 import { conditional } from '@silverhand/essentials';
 
 import SuspendedTag from '@/pages/Users/components/SuspendedTag';
@@ -13,13 +13,13 @@ type Props = {
    * A subset of User schema type that is used in the preview component.
    */
   user: {
-    id: User['id'];
-    avatar?: User['avatar'];
-    name?: User['name'];
-    primaryEmail?: User['primaryEmail'];
-    primaryPhone?: User['primaryPhone'];
-    username?: User['username'];
-    isSuspended?: User['isSuspended'];
+    id: UserInfo['id'];
+    avatar?: UserInfo['avatar'];
+    name?: UserInfo['name'];
+    primaryEmail?: UserInfo['primaryEmail'];
+    primaryPhone?: UserInfo['primaryPhone'];
+    username?: UserInfo['username'];
+    isSuspended?: UserInfo['isSuspended'];
   };
   /**
    * Whether to provide a link to user details page. Explicitly set to `false` to hide it.
