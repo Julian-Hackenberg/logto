@@ -8,7 +8,7 @@ import {
   Scopes,
   UserSsoIdentities,
 } from '../db-entries/index.js';
-import { mfaFactorsGuard, jsonObjectGuard } from '../foundations/index.js';
+import { mfaFactorsGuard } from '../foundations/index.js';
 
 import { jwtCustomizerGuard } from './logto-config/index.js';
 import { userInfoGuard } from './user.js';
@@ -51,8 +51,8 @@ export const customJwtFetcherGuard = jwtCustomizerGuard
   .pick({ script: true, envVars: true })
   .required({ script: true })
   .extend({
-    token: jsonObjectGuard,
-    context: jsonObjectGuard.optional(),
+    token: z.record(z.unknown()),
+    context: z.record(z.unknown()).optional(),
   });
 
 export type CustomJwtFetcher = z.infer<typeof customJwtFetcherGuard>;
